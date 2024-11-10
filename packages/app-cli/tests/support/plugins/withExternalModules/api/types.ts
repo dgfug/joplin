@@ -1,3 +1,5 @@
+/* eslint-disable multiline-comment-style */
+
 // =================================================================
 // Command API types
 // =================================================================
@@ -41,9 +43,9 @@ export interface Command {
 	 * Or | \|\| | "noteIsTodo \|\| noteTodoCompleted"
 	 * And | && | "oneNoteSelected && !inConflictFolder"
 	 *
-	 * Joplin, unlike VSCode, also supports parenthesis, which allows creating
+	 * Joplin, unlike VSCode, also supports parentheses, which allows creating
 	 * more complex expressions such as `cond1 || (cond2 && cond3)`. Only one
-	 * level of parenthesis is possible (nested ones aren't supported).
+	 * level of parentheses is possible (nested ones aren't supported).
 	 *
 	 * Currently the supported context variables aren't documented, but you can
 	 * find the list below:
@@ -202,6 +204,31 @@ export interface Disposable {
 	// dispose():void;
 }
 
+export enum ModelType {
+	Note = 1,
+	Folder = 2,
+	Setting = 3,
+	Resource = 4,
+	Tag = 5,
+	NoteTag = 6,
+	Search = 7,
+	Alarm = 8,
+	MasterKey = 9,
+	ItemChange = 10,
+	NoteResource = 11,
+	ResourceLocalState = 12,
+	Revision = 13,
+	Migration = 14,
+	SmartFilter = 15,
+	Command = 16,
+}
+
+export interface VersionInfo {
+	version: string;
+	profileVersion: number;
+	syncVersion: number;
+}
+
 // =================================================================
 // Menu types
 // =================================================================
@@ -270,6 +297,17 @@ export interface MenuItem {
 	commandName?: string;
 
 	/**
+	 * Arguments that should be passed to the command. They will be as rest
+	 * parameters.
+	 */
+	commandArgs?: any[];
+
+	/**
+	 * Set to "separator" to create a divider line
+	 */
+	type?: ('normal' | 'separator' | 'submenu' | 'checkbox' | 'radio');
+
+	/**
 	 * Accelerator associated with the menu item
 	 */
 	accelerator?: string;
@@ -321,6 +359,18 @@ export interface DialogResult {
 	formData?: any;
 }
 
+export interface Size {
+	width?: number;
+	height?: number;
+}
+
+export interface Rectangle {
+	x?: number;
+	y?: number;
+	width?: number;
+	height?: number;
+}
+
 // =================================================================
 // Settings types
 // =================================================================
@@ -332,6 +382,12 @@ export enum SettingItemType {
 	Array = 4,
 	Object = 5,
 	Button = 6,
+}
+
+export enum SettingItemSubType {
+	FilePathAndArgs = 'file_path_and_args',
+	FilePath = 'file_path', // Not supported on mobile!
+	DirectoryPath = 'directory_path', // Not supported on mobile!
 }
 
 export enum AppType {
@@ -350,6 +406,12 @@ export enum SettingStorage {
 export interface SettingItem {
 	value: any;
 	type: SettingItemType;
+
+	/**
+	 * Currently only used to display a file or directory selector. Always set
+	 * `type` to `SettingItemType.String` when using this property.
+	 */
+	subType?: SettingItemSubType;
 
 	label: string;
 	description?: string;

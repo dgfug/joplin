@@ -2,8 +2,7 @@ import * as fs from 'fs-extra';
 const Entities = require('html-entities').AllHtmlEntities;
 const htmlparser2 = require('@joplin/fork-htmlparser2');
 const Datauri = require('datauri/sync');
-const cssParse = require('css/lib/parse');
-const cssStringify = require('css/lib/stringify');
+import { CssTypes, parse as cssParse, stringify as cssStringify } from '@adobe/css-tools';
 
 const selfClosingElements = [
 	'area',
@@ -33,10 +32,18 @@ const htmlentities = (s: string): string => {
 };
 
 const dataUriEncode = (filePath: string): string => {
-	const result = Datauri(filePath);
-	return result.content;
+	try {
+		const result = Datauri(filePath);
+		return result.content;
+	} catch (error) {
+		// If the file path is invalid, the Datauri will throw an exception.
+		// Instead, since we can just ignore that particular file.
+		// Fixes https://github.com/laurent22/joplin/issues/8305
+		return '';
+	}
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
 const attributesHtml = (attr: any) => {
 	const output = [];
 
@@ -48,9 +55,10 @@ const attributesHtml = (attr: any) => {
 	return output.join(' ');
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
 const attrValue = (attrs: any, name: string): string => {
 	if (!attrs[name]) return '';
-	return attrs[name].toLowerCase();
+	return attrs[name];
 };
 
 const isSelfClosingTag = (tagName: string) => {
@@ -65,7 +73,12 @@ const processCssContent = (cssBaseDir: string, content: string): string => {
 	for (const rule of o.stylesheet.rules) {
 		if (rule.type === 'font-face') {
 			for (const declaration of rule.declarations) {
+				if (declaration.type === CssTypes.comment) {
+					continue;
+				}
+
 				if (declaration.property === 'src') {
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
 					declaration.value = declaration.value.replace(/url\((.*?)\)/g, (_v: any, url: string) => {
 						const cssFilePath = `${cssBaseDir}/${url}`;
 						if (fs.existsSync(cssFilePath)) {
@@ -82,23 +95,45 @@ const processCssContent = (cssBaseDir: string, content: string): string => {
 	return cssStringify(o);
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
 const processLinkTag = (baseDir: string, _name: string, attrs: any): string => {
 	const href = attrValue(attrs, 'href');
 	if (!href) return null;
 
 	const filePath = `${baseDir}/${href}`;
+
 	const content = fs.readFileSync(filePath, 'utf8');
 	return `<style>${processCssContent(dirname(filePath), content)}</style>`;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
 const processScriptTag = (baseDir: string, _name: string, attrs: any): string => {
 	const src = attrValue(attrs, 'src');
 	if (!src) return null;
 
-	const content = fs.readFileSync(`${baseDir}/${src}`, 'utf8');
-	return `<script>${htmlentities(content)}</script>`;
+	const scriptFilePath = `${baseDir}/${src}`;
+	let content = fs.readFileSync(scriptFilePath, 'utf8');
+
+	// There's no simple way to insert arbitrary content in <script> tags.
+	// Encoding HTML entities doesn't work because the JS parser will not decode
+	// them before parsing. We also can't put the code verbatim since it may
+	// contain strings such as `</script>` or `<!--` which would break the HTML
+	// file.
+	//
+	// So it seems the only way is to escape these specific sequences with a
+	// backslash. It shouldn't break the JS code and should allow the HTML
+	// parser to work as expected.
+	//
+	// https://stackoverflow.com/a/41302266/561309
+
+	content = content.replace(/<script>/g, '<\\script>');
+	content = content.replace(/<\/script>/g, '<\\/script>');
+	content = content.replace(/<!--/g, '<\\!--');
+
+	return `<script>${content}</script>`;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
 const processImgTag = (baseDir: string, _name: string, attrs: any): string => {
 	const src = attrValue(attrs, 'src');
 	if (!src) return null;
@@ -111,6 +146,7 @@ const processImgTag = (baseDir: string, _name: string, attrs: any): string => {
 	return `<img src="${dataUriEncode(filePath)}" ${attributesHtml(modAttrs)}/>`;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
 const processAnchorTag = (baseDir: string, _name: string, attrs: any): string => {
 	const href = attrValue(attrs, 'href');
 	if (!href) return null;
@@ -137,7 +173,7 @@ function dirname(path: string) {
 	return s.join('/');
 }
 
-export default async function htmlpack(inputFile: string, outputFile: string) {
+export default async function htmlpack(inputFile: string, outputFile: string): Promise<void> {
 	const inputHtml = await fs.readFile(inputFile, 'utf8');
 	const baseDir = dirname(inputFile);
 
@@ -156,6 +192,7 @@ export default async function htmlpack(inputFile: string, outputFile: string) {
 
 	const parser = new htmlparser2.Parser({
 
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
 		onopentag: (name: string, attrs: any) => {
 			name = name.toLowerCase();
 

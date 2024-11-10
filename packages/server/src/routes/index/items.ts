@@ -2,7 +2,7 @@ import { SubPath, respondWithItemContent } from '../../utils/routeUtils';
 import Router from '../../utils/Router';
 import { RouteType } from '../../utils/types';
 import { AppContext } from '../../utils/types';
-import { ErrorNotFound } from '../../utils/errors';
+import { ErrorForbidden, ErrorNotFound } from '../../utils/errors';
 import config, { showItemUrls } from '../../config';
 import { formatDateTime } from '../../utils/time';
 import defaultView from '../../utils/defaultView';
@@ -14,6 +14,8 @@ import { formatBytes } from '../../utils/bytes';
 const router = new Router(RouteType.Web);
 
 router.get('items', async (_path: SubPath, ctx: AppContext) => {
+	if (!ctx.joplin.owner.is_admin) throw new ErrorForbidden();
+
 	const pagination = makeTablePagination(ctx.query, 'name', PaginationOrderDir.ASC);
 	const paginatedItems = await ctx.joplin.models.item().children(ctx.joplin.owner.id, '', pagination, { fields: ['id', 'name', 'updated_time', 'mime_type', 'content_size'] });
 
@@ -42,22 +44,24 @@ router.get('items', async (_path: SubPath, ctx: AppContext) => {
 			},
 		],
 		rows: paginatedItems.items.map(item => {
-			const row: Row = [
-				{
-					value: item.name,
-					stretch: true,
-					url: showItemUrls(config()) ? `${config().userContentBaseUrl}/items/${item.id}/content` : null,
-				},
-				{
-					value: formatBytes(item.content_size),
-				},
-				{
-					value: item.mime_type || 'binary',
-				},
-				{
-					value: formatDateTime(item.updated_time),
-				},
-			];
+			const row: Row = {
+				items: [
+					{
+						value: item.name,
+						stretch: true,
+						url: showItemUrls(config()) ? `${config().userContentBaseUrl}/items/${item.id}/content` : null,
+					},
+					{
+						value: formatBytes(item.content_size),
+					},
+					{
+						value: item.mime_type || 'binary',
+					},
+					{
+						value: formatDateTime(item.updated_time),
+					},
+				],
+			};
 
 			return row;
 		}),

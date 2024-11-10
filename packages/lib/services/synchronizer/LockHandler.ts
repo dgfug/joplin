@@ -3,6 +3,7 @@ import shim from '../../shim';
 import JoplinError from '../../JoplinError';
 import time from '../../time';
 import { FileApi } from '../../file-api';
+import { AppType } from '../../models/Setting';
 const { fileExtension, filename } = require('../../path-utils');
 
 export enum LockType {
@@ -25,6 +26,16 @@ export interface Lock {
 	updatedTime?: number;
 }
 
+const nullLock = (): Lock => {
+	return {
+		clientId: '',
+		clientType: LockClientType.Desktop,
+		type: LockType.None,
+		id: 'NULL_LOCK',
+		updatedTime: Date.now(),
+	};
+};
+
 function lockIsActive(lock: Lock, currentDate: Date, lockTtl: number): boolean {
 	return currentDate.getTime() - lock.updatedTime < lockTtl;
 }
@@ -44,6 +55,13 @@ export function lockNameToObject(name: string, updatedTime: number = null): Lock
 	if (isNaN(lock.type)) throw new Error(`Invalid lock type: ${name}`);
 
 	return lock;
+}
+
+export function appTypeToLockType(appType: AppType): LockClientType {
+	if (appType === AppType.Desktop) return LockClientType.Desktop;
+	if (appType === AppType.Mobile) return LockClientType.Mobile;
+	if (appType === AppType.Cli) return LockClientType.Cli;
+	throw new Error(`Invalid app type: ${appType}`);
 }
 
 export function hasActiveLock(locks: Lock[], currentDate: Date, lockTtl: number, lockType: LockType, clientType: LockClientType = null, clientId: string = null) {
@@ -110,6 +128,7 @@ function defaultAcquireLockOptions(): AcquireLockOptions {
 }
 
 interface RefreshTimer {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
 	id: any;
 	inProgress: boolean;
 }
@@ -131,6 +150,7 @@ export default class LockHandler {
 	private refreshTimers_: RefreshTimers = {};
 	private autoRefreshInterval_: number = 1000 * 60;
 	private lockTtl_: number = defaultLockTtl;
+	private enabled_ = true;
 
 	public constructor(api: FileApi, options: LockHandlerOptions = null) {
 		if (!options) options = {};
@@ -138,6 +158,14 @@ export default class LockHandler {
 		this.api_ = api;
 		if ('lockTtl' in options) this.lockTtl_ = options.lockTtl;
 		if ('autoRefreshInterval' in options) this.autoRefreshInterval_ = options.autoRefreshInterval;
+	}
+
+	public get enabled(): boolean {
+		return this.enabled_;
+	}
+
+	public set enabled(v: boolean) {
+		this.enabled_ = v;
 	}
 
 	public get lockTtl(): number {
@@ -170,11 +198,14 @@ export default class LockHandler {
 		return `${Dirnames.Locks}/${this.lockFilename(lock)}`;
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
 	private lockFileToObject(file: any): Lock {
 		return lockNameToObject(filename(file.path), file.updated_time);
 	}
 
-	async locks(lockType: LockType = null): Promise<Lock[]> {
+	public async locks(lockType: LockType = null): Promise<Lock[]> {
+		if (!this.enabled) return [];
+
 		if (this.useBuiltInLocks) {
 			const locks = (await this.api_.listLocks()).items;
 			return locks;
@@ -340,7 +371,10 @@ export default class LockHandler {
 		return this.api_.remoteDate();
 	}
 
+	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public startAutoLockRefresh(lock: Lock, errorHandler: Function): string {
+		if (!this.enabled) return '';
+
 		const handle = this.autoLockRefreshHandle(lock);
 		if (this.refreshTimers_[handle]) {
 			throw new Error(`There is already a timer refreshing this lock: ${handle}`);
@@ -397,7 +431,9 @@ export default class LockHandler {
 		return handle;
 	}
 
-	stopAutoLockRefresh(lock: Lock) {
+	public stopAutoLockRefresh(lock: Lock) {
+		if (!this.enabled) return;
+
 		const handle = this.autoLockRefreshHandle(lock);
 		if (!this.refreshTimers_[handle]) {
 			// Should not throw an error because lock may have been cleared in startAutoLockRefresh
@@ -411,6 +447,8 @@ export default class LockHandler {
 	}
 
 	public async acquireLock(lockType: LockType, clientType: LockClientType, clientId: string, options: AcquireLockOptions = null): Promise<Lock> {
+		if (!this.enabled) return nullLock();
+
 		options = {
 			...defaultAcquireLockOptions(),
 			...options,
@@ -426,6 +464,8 @@ export default class LockHandler {
 	}
 
 	public async releaseLock(lockType: LockType, clientType: LockClientType, clientId: string) {
+		if (!this.enabled) return;
+
 		if (this.useBuiltInLocks) {
 			await this.api_.releaseLock(lockType, clientType, clientId);
 			return;

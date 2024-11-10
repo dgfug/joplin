@@ -1,12 +1,9 @@
-import { readFile } from 'fs-extra';
 import { insertContentIntoFile, rootDir } from './tool-utils';
 import markdownUtils, { MarkdownTableHeader, MarkdownTableJustify, MarkdownTableRow } from '@joplin/lib/markdownUtils';
-const ArrayUtils = require('@joplin/lib/ArrayUtils');
+import { GithubSponsor, loadSponsors, OrgSponsor } from './utils/loadSponsors';
 const { escapeHtml } = require('@joplin/lib/string-utils');
-import { GithubSponsor, OrgSponsor, Sponsors } from './website/utils/types';
 
 const readmePath = `${rootDir}/README.md`;
-const sponsorsPath = `${rootDir}/packages/tools/sponsors.json`;
 
 async function createGitHubSponsorTable(sponsors: GithubSponsor[]): Promise<string> {
 	sponsors = sponsors.slice();
@@ -32,7 +29,7 @@ async function createGitHubSponsorTable(sponsors: GithubSponsor[]): Promise<stri
 
 	let sponsorIndex = 0;
 	for (let rowIndex = 0; rowIndex < 9999; rowIndex++) {
-		let sponsor = null;
+		let sponsor: GithubSponsor = null;
 		const row: MarkdownTableRow = {};
 		for (let colIndex = 0; colIndex < sponsorsPerRow; colIndex++) {
 			sponsor = sponsors[sponsorIndex];
@@ -51,8 +48,6 @@ async function createGitHubSponsorTable(sponsors: GithubSponsor[]): Promise<stri
 }
 
 async function createOrgSponsorTable(sponsors: OrgSponsor[]): Promise<string> {
-	sponsors = ArrayUtils.shuffle(sponsors);
-
 	const output: string[] = [];
 
 	for (const sponsor of sponsors) {
@@ -63,20 +58,20 @@ async function createOrgSponsorTable(sponsors: OrgSponsor[]): Promise<string> {
 }
 
 async function main() {
-	const sponsors: Sponsors = JSON.parse(await readFile(sponsorsPath, 'utf8'));
+	const sponsors = await loadSponsors();
 
 	await insertContentIntoFile(
 		readmePath,
 		'<!-- SPONSORS-GITHUB -->\n',
 		'\n<!-- SPONSORS-GITHUB -->',
-		await createGitHubSponsorTable(sponsors.github)
+		await createGitHubSponsorTable(sponsors.github),
 	);
 
 	await insertContentIntoFile(
 		readmePath,
 		'<!-- SPONSORS-ORG -->\n',
 		'\n<!-- SPONSORS-ORG -->',
-		await createOrgSponsorTable(sponsors.orgs)
+		await createOrgSponsorTable(sponsors.orgs),
 	);
 }
 

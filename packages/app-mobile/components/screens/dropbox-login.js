@@ -2,13 +2,13 @@ const React = require('react');
 
 const { View, Button, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } = require('react-native');
 const { connect } = require('react-redux');
-const { ScreenHeader } = require('../screen-header.js');
+const { ScreenHeader } = require('../ScreenHeader');
 const { _ } = require('@joplin/lib/locale');
-const { BaseScreenComponent } = require('../base-screen.js');
+const { BaseScreenComponent } = require('../base-screen');
 const DialogBox = require('react-native-dialogbox').default;
 const { dialogs } = require('../../utils/dialogs.js');
 const Shared = require('@joplin/lib/components/shared/dropbox-login-shared');
-const { themeStyle } = require('../global-style.js');
+const { themeStyle } = require('../global-style');
 
 class DropboxLoginScreenComponent extends BaseScreenComponent {
 	constructor() {
@@ -39,8 +39,8 @@ class DropboxLoginScreenComponent extends BaseScreenComponent {
 				padding: theme.margin,
 				backgroundColor: theme.backgroundColor,
 			},
-			stepText: Object.assign({}, theme.normalText, { marginBottom: theme.margin }),
-			urlText: Object.assign({}, theme.urlText, { marginBottom: theme.margin }),
+			stepText: { ...theme.normalText, marginBottom: theme.margin },
+			urlText: { ...theme.urlText, marginBottom: theme.margin },
 		};
 
 		this.styles_[themeId] = StyleSheet.create(styles);

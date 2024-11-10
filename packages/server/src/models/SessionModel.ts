@@ -1,6 +1,6 @@
 import BaseModel from './BaseModel';
 import { User, Session, Uuid } from '../services/database/types';
-import uuidgen from '../utils/uuidgen';
+import { uuidgen } from '@joplin/lib/uuid';
 import { ErrorForbidden } from '../utils/errors';
 import { Hour } from '../utils/time';
 
@@ -28,7 +28,7 @@ export default class SessionModel extends BaseModel<Session> {
 
 	public async authenticate(email: string, password: string): Promise<Session> {
 		const user = await this.models().user().login(email, password);
-		if (!user) throw new ErrorForbidden('Invalid username or password');
+		if (!user) throw new ErrorForbidden('Invalid username or password', { details: { email } });
 		return this.createUserSession(user.id);
 	}
 
@@ -39,7 +39,7 @@ export default class SessionModel extends BaseModel<Session> {
 
 	public async deleteByUserId(userId: Uuid, exceptSessionId: Uuid = '') {
 		const query = this.db(this.tableName).where('user_id', '=', userId);
-		if (exceptSessionId) query.where('id', '!=', exceptSessionId);
+		if (exceptSessionId) void query.where('id', '!=', exceptSessionId);
 		await query.delete();
 	}
 

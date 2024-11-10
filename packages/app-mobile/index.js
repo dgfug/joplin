@@ -6,6 +6,8 @@
 
 // So there's basically still a one way flux: React => SQLite => Redux => React
 
+import './utils/polyfills';
+
 import { LogBox, AppRegistry } from 'react-native';
 const Root = require('./root').default;
 

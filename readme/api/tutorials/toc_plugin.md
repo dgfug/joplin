@@ -1,6 +1,9 @@
-# Creating a table of content plugin
+---
+sidebar_position: 1
+---
+# Creating a table of contents plugin
 
-This tutorial will guide you through the steps to create a table of content plugin for Joplin. It will display a view next to the current note that will contain links to the sections of a note. It will be possible to click on one of the header to jump to the relevant section.
+This tutorial will guide you through the steps to create a table of contents plugin for Joplin. It will display a view next to the current note that will contain links to the sections of a note. It will be possible to click on one of the header to jump to the relevant section.
 
 Through this tutorial you will learn about several aspect of the Joplin API, including:
 
@@ -130,7 +133,7 @@ Later you will also need a way to generate the slug for each header. A slug is a
 Then this is the function you will need for Joplin, so copy it somewhere in your file:
 
 ```typescript
-const uslug = require('uslug');
+const uslug = require('@joplin/fork-uslug');
 
 let slugs = {};
 

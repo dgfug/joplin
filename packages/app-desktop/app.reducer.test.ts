@@ -1,9 +1,9 @@
-import { AppState } from './app.reducer';
+import { AppState, createAppDefaultWindowState } from './app.reducer';
 import appReducer, { createAppDefaultState } from './app.reducer';
 
-describe('app.reducer', function() {
+describe('app.reducer', () => {
 
-	it('DIALOG_OPEN', async () => {
+	it('should handle DIALOG_OPEN', async () => {
 		const state: AppState = createAppDefaultState({}, {});
 
 		let newState = appReducer(state, {
@@ -41,7 +41,34 @@ describe('app.reducer', function() {
 			name: 'setPassword',
 		});
 
-		expect(newState.dialogs).toEqual([{ name: 'syncWizard' }, { name: 'setPassword' }]);
+		expect(newState.dialogs).toEqual([
+			{ name: 'syncWizard', props: {} },
+			{ name: 'setPassword', props: {} },
+		]);
+	});
+
+	it('showing a dialog in one window should hide dialogs with the same ID in background windows', () => {
+		const state: AppState = {
+			...createAppDefaultState({}, {}),
+			backgroundWindows: {
+				testWindow: {
+					...createAppDefaultWindowState(),
+					windowId: 'testWindow',
+
+					visibleDialogs: {
+						testDialog: true,
+					},
+				},
+			},
+		};
+
+		const newState = appReducer(state, {
+			type: 'VISIBLE_DIALOGS_ADD',
+			name: 'testDialog',
+		});
+
+		expect(newState.backgroundWindows.testWindow.visibleDialogs).toEqual({});
+		expect(newState.visibleDialogs).toEqual({ testDialog: true });
 	});
 
 });

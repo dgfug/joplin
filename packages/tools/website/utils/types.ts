@@ -1,25 +1,21 @@
 import { Plan, StripePublicConfig } from '@joplin/lib/utils/joplinCloud';
+import { Sponsors } from '../../utils/loadSponsors';
+import { Translations } from '../../utils/translation';
+import { OpenGraphTags } from './openGraph';
 
 export enum Env {
 	Dev = 'dev',
 	Prod = 'prod',
 }
 
-export interface GithubSponsor {
-	name: string;
+export interface Locale {
+	htmlTranslations: Translations;
+	lang: string;
+	pathPrefix: string;
+}
+
+export interface GithubUser {
 	id: string;
-}
-
-export interface OrgSponsor {
-	url: string;
-	urlWebsite?: string;
-	title: string;
-	imageName: string;
-}
-
-export interface Sponsors {
-	github: GithubSponsor[];
-	orgs: OrgSponsor[];
 }
 
 interface PressCarouselItem {
@@ -57,7 +53,7 @@ export interface TemplateParams {
 	title?: string;
 	donateLinksMd?: string;
 	pageTitle?: string;
-	yyyy? : string;
+	yyyy?: string;
 	templateHtml?: string;
 	partials?: Record<string, string>;
 	forumUrl?: string;
@@ -70,10 +66,17 @@ export interface TemplateParams {
 	navbar?: NavBar;
 	showJoplinCloudLinks?: boolean;
 	assetUrls: AssetUrls;
+	showBottomLinks?: boolean;
+	openGraph: OpenGraphTags;
+	isNews?: boolean;
+	locale?: Locale;
 }
 
 export interface PlanPageParams extends TemplateParams {
 	plans: Record<string, Plan>;
 	faqHtml: string;
+	featureListHtml: string;
 	stripeConfig: StripePublicConfig;
 }
+
+export type Partials = Record<string, string>;

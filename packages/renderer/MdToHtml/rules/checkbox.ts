@@ -2,6 +2,7 @@ import { RuleOptions } from '../../MdToHtml';
 
 let checkboxIndex_ = -1;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
 function pluginAssets(theme: any) {
 	return [
 		{
@@ -20,9 +21,19 @@ function pluginAssets(theme: any) {
 					list-style-type: none;
 				}
 
+				li.md-checkbox .checkbox-wrapper {
+					display: flex;
+					flex-direction: row;
+				}
+
 				li.md-checkbox input[type=checkbox] {
+					display: flex;
 					margin-left: -1.71em;
 					margin-right: 0.7em;
+				}
+
+				li.md-checkbox label {
+					display: flex;
 				}
 				
 				ul.joplin-checklist {
@@ -53,7 +64,8 @@ function pluginAssets(theme: any) {
 	];
 }
 
-function createPrefixTokens(Token: any, id: string, checked: boolean, label: string, postMessageSyntax: string, sourceToken: any): any[] {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
+function createPrefixTokens(Token: any, id: string, checked: boolean, label: string, postMessageSyntax: string, sourceToken: any, disabled: boolean): any[] {
 	let token = null;
 	const tokens = [];
 
@@ -89,6 +101,7 @@ function createPrefixTokens(Token: any, id: string, checked: boolean, label: str
 
 	token = new Token('checkbox_input', 'input', 0);
 	token.attrs = [['type', 'checkbox'], ['id', id], ['onclick', js]];
+	if (disabled) token.attrs.push(['disabled', 'disabled']);
 	if (checked) token.attrs.push(['checked', 'checked']);
 	tokens.push(token);
 
@@ -105,6 +118,7 @@ function createPrefixTokens(Token: any, id: string, checked: boolean, label: str
 	return tokens;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
 function createSuffixTokens(Token: any): any[] {
 	return [
 		new Token('label_close', 'label', -1),
@@ -112,9 +126,11 @@ function createSuffixTokens(Token: any): any[] {
 	];
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
 function checkboxPlugin(markdownIt: any, options: RuleOptions) {
 	const renderingType = options.checkboxRenderingType || 1;
 
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
 	markdownIt.core.ruler.push('checkbox', (state: any) => {
 		const tokens = state.tokens;
 		const Token = state.Token;
@@ -169,7 +185,7 @@ function checkboxPlugin(markdownIt: any, options: RuleOptions) {
 					// Prepend the text content with the checkbox markup and the opening <label> tag
 					// then append the </label> tag at the end of the text content.
 
-					const prefix = createPrefixTokens(Token, id, checked, label, options.postMessageSyntax, token);
+					const prefix = createPrefixTokens(Token, id, checked, label, options.postMessageSyntax, token, !!options.checkboxDisabled);
 					const suffix = createSuffixTokens(Token);
 
 					token.children = markdownIt.utils.arrayReplaceAt(token.children, 0, prefix);

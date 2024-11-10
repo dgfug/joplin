@@ -1,7 +1,8 @@
 import yargs = require('yargs');
 import BaseCommand from '../commands/BaseCommand';
 import DbCommand from '../commands/DbCommand';
-import DeleteOldChangesCommand from '../commands/DeleteOldChangesCommand';
+import CompressOldChangesCommand from '../commands/CompressOldChangesCommand';
+import StorageCommand from '../commands/StorageCommand';
 import MigrateCommand from '../commands/MigrateCommand';
 
 export interface Commands {
@@ -15,7 +16,8 @@ export default async function setupCommands(): Promise<Commands> {
 	const commands: BaseCommand[] = [
 		new MigrateCommand(),
 		new DbCommand(),
-		new DeleteOldChangesCommand(),
+		new CompressOldChangesCommand(),
+		new StorageCommand(),
 	];
 
 	for (const cmd of commands) {
@@ -64,6 +66,7 @@ export default async function setupCommands(): Promise<Commands> {
 
 	if (cmdName && !selectedCommand) {
 		yargs.showHelp();
+		// eslint-disable-next-line no-console
 		console.info('');
 		throw new Error(`Invalid command: ${cmdName}`);
 	}

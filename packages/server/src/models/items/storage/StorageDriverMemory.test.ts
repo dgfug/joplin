@@ -1,8 +1,17 @@
-import { afterAllTests, beforeAllDb, beforeEachDb } from '../../../utils/testing/testUtils';
-import StorageDriverMemory from './StorageDriverMemory';
-import { shouldDeleteContent, shouldNotCreateItemIfContentNotSaved, shouldNotUpdateItemIfContentNotSaved, shouldWriteToContentAndReadItBack } from './testUtils';
+import { mkdirp, remove } from 'fs-extra';
+import { afterAllTests, beforeAllDb, beforeEachDb, tempDirPath } from '../../../utils/testing/testUtils';
+import { StorageDriverConfig, StorageDriverMode, StorageDriverType } from '../../../utils/types';
+import { shouldDeleteContent, shouldNotCreateItemIfContentNotSaved, shouldNotUpdateItemIfContentNotSaved, shouldSupportFallbackDriver, shouldSupportFallbackDriverInReadWriteMode, shouldThrowNotFoundIfNotExist, shouldUpdateContentStorageIdAfterSwitchingDriver, shouldWriteToContentAndReadItBack } from './testUtils';
 
-describe('StorageDriverMemory', function() {
+const fsDriverPath_ = tempDirPath();
+
+const newConfig = (): StorageDriverConfig => {
+	return {
+		type: StorageDriverType.Memory,
+	};
+};
+
+describe('StorageDriverMemory', () => {
 
 	beforeAll(async () => {
 		await beforeAllDb('StorageDriverMemory');
@@ -14,27 +23,20 @@ describe('StorageDriverMemory', function() {
 
 	beforeEach(async () => {
 		await beforeEachDb();
+		await mkdirp(fsDriverPath_);
 	});
 
-	test('should write to content and read it back', async function() {
-		const driver = new StorageDriverMemory(1);
-		await shouldWriteToContentAndReadItBack(driver);
+	afterEach(async () => {
+		await remove(fsDriverPath_);
 	});
 
-	test('should delete the content', async function() {
-		const driver = new StorageDriverMemory(1);
-		await shouldDeleteContent(driver);
-	});
-
-	test('should not create the item if the content cannot be saved', async function() {
-		const driver = new StorageDriverMemory(1);
-		await shouldNotCreateItemIfContentNotSaved(driver);
-	});
-
-	test('should not update the item if the content cannot be saved', async function() {
-		const driver = new StorageDriverMemory(1);
-		await shouldNotUpdateItemIfContentNotSaved(driver);
-	});
+	shouldWriteToContentAndReadItBack(newConfig());
+	shouldDeleteContent(newConfig());
+	shouldNotCreateItemIfContentNotSaved(newConfig());
+	shouldNotUpdateItemIfContentNotSaved(newConfig());
+	shouldSupportFallbackDriver(newConfig(), { type: StorageDriverType.Filesystem, path: fsDriverPath_ });
+	shouldSupportFallbackDriverInReadWriteMode(newConfig(), { type: StorageDriverType.Filesystem, path: fsDriverPath_, mode: StorageDriverMode.ReadAndWrite });
+	shouldUpdateContentStorageIdAfterSwitchingDriver(newConfig(), { type: StorageDriverType.Filesystem, path: fsDriverPath_ });
+	shouldThrowNotFoundIfNotExist(newConfig());
 
 });
-
